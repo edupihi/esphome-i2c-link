@@ -153,7 +153,7 @@ namespace i2c_slave
 
           reg_it = reg->find(context->command_data); // lookup requested registry value
           if (reg_it == reg->end()) { // we're past-the-end = not found
-            ESP_LOGE(TAG, "Non-existing registry value (0x%04X)requested", context->command_data);
+            ESP_LOGE(TAG, "Non-existing registry value (0x%02X)requested", context->command_data);
             data_buffer = zero_buffer;
             buffer_size = sizeof(zero_buffer);
           } else {

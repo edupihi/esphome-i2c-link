@@ -3,13 +3,7 @@ from esphome.components import i2c, sensor
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
-    # CONF_HUMIDITY,
-    # CONF_TEMPERATURE,
-    # CONF_VARIANT,
-    # DEVICE_CLASS_HUMIDITY,
-    # DEVICE_CLASS_TEMPERATURE,
-    # UNIT_CELSIUS,
-    # UNIT_PERCENT,
+    CONF_SENSOR,
     STATE_CLASS_MEASUREMENT,
     DEVICE_CLASS_SIGNAL_STRENGTH,
     ENTITY_CATEGORY_DIAGNOSTIC,
@@ -29,13 +23,16 @@ CONF_UPTIME = "uptime"
 CONF_I2C_REG_KEY = "i2c_registry_key"
 
 i2c_client_ns = cg.esphome_ns.namespace("i2c_client")
-I2CClientComponent = i2c_client_ns.class_("I2CClientComponent", cg.PollingComponent, i2c.I2CDevice)
+I2CClientSensor = i2c_client_ns.class_("I2CClientSensor", cg.PollingComponent, i2c.I2CDevice)
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(I2CClientComponent),
+            cv.GenerateID(): cv.declare_id(I2CClientSensor),
             cv.Required(CONF_I2C_REG_KEY): cv.hex_uint8_t,
+            cv.Optional(CONF_SENSOR): sensor.sensor_schema(
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
             cv.Optional(CONF_WIFI_SIGNAL): sensor.sensor_schema(
                 unit_of_measurement=UNIT_DECIBEL_MILLIWATT,
                 accuracy_decimals=0,
@@ -58,6 +55,7 @@ CONFIG_SCHEMA = (
 )
 
 TYPES = {
+    CONF_SENSOR: "set_sensor",
     CONF_WIFI_SIGNAL: "set_sensor",
     CONF_UPTIME: "set_sensor",
     # CONF_HUMIDITY: "set_humidity_sensor",
@@ -68,14 +66,6 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
-
-    # if temperature := config.get(CONF_TEMPERATURE):
-    #     sens = await sensor.new_sensor(temperature)
-    #     cg.add(var.set_temperature_sensor(sens))
-
-    # if humidity := config.get(CONF_HUMIDITY):
-    #     sens = await sensor.new_sensor(humidity)
-    #     cg.add(var.set_humidity_sensor(sens))
 
     cg.add(var.set_registry_key(config[CONF_I2C_REG_KEY]))
 

@@ -8,22 +8,25 @@ namespace esphome {
 namespace i2c_client {
 
 static const char *const TAG = "i2c_client";
+static const int SEMAPHORE_TIMEOUT = 5; // ms ?
 
 void I2CClientSensor::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
 
+  this->semaphore_ = xSemaphoreCreateBinary();
   // auto err = this->write(nullptr, 0);
   // if (err != i2c::ERROR_OK) {
   //   this->mark_failed();
   //   return;
   // }
 
-
   ESP_LOGV(TAG, "Initialization complete");
 }
 
 void I2CClientSensor::update() {
   ESP_LOGW(TAG, "Update starting..");
+  // Synchronize
+  xSemaphoreTake(this->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
   // Send command
   last_error_ = this->write((uint8_t *)&reg_key_, 1);
   if (last_error_ != i2c::ERROR_OK) {
@@ -36,6 +39,9 @@ void I2CClientSensor::update() {
     value_t buf = { .value_fl = 0.0f };
 
     last_error_ = this->read((uint8_t *)&(buf.value_raw), 4);
+
+    xSemaphoreGive(this->semaphore_);
+
     if (last_error_ != i2c::ERROR_OK) {
       ESP_LOGW(TAG, "Sensor read failed");
       this->status_set_warning();

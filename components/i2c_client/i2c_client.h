@@ -6,6 +6,11 @@
 #include "esphome/components/i2c/i2c.h"
 #include "esphome/core/helpers.h"
 
+#ifdef ESP_IDF
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#endif // ESP_IDF
+
 #include <vector>
 
 namespace esphome
@@ -32,6 +37,7 @@ namespace i2c_client
     void set_sensor(sensor::Sensor *sensor) { sensor_ = sensor; };
 
   protected:
+    SemaphoreHandle_t semaphore_;
     uint8_t reg_key_{0x0};
     sensor::Sensor *sensor_{nullptr};
 

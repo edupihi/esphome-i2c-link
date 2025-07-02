@@ -8,12 +8,10 @@ namespace esphome {
 namespace i2c_client {
 
 static const char *const TAG = "i2c_client";
-static const int SEMAPHORE_TIMEOUT = 5; // ms ?
 
 void I2CClientSensor::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
 
-  this->semaphore_ = xSemaphoreCreateBinary();
   // auto err = this->write(nullptr, 0);
   // if (err != i2c::ERROR_OK) {
   //   this->mark_failed();

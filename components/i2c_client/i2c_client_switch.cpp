@@ -17,7 +17,12 @@ void I2CClientSwitch::setup() {
 
 // Implement write_state from switch_::Switch
 void I2CClientSwitch::write_state(bool state) {
+  // Take semaphore to ensure that no other sensor/switch is requesting
+  xSemaphoreTake(this->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
+
   this->publish_state(state);
+
+  xSemaphoreGive(this->semaphore_);
 }
 
 void I2CClientSwitch::dump_config() {

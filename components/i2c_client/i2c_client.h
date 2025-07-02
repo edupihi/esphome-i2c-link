@@ -17,14 +17,24 @@ namespace esphome
 {
 namespace i2c_client
 {
-
+  static const int SEMAPHORE_TIMEOUT = 5; // ms
   typedef union value_u
   {
     float value_fl;
     uint8_t value_raw[4];
   } value_t;
 
-  class I2CClientSensor : public PollingComponent, public i2c::I2CDevice
+  class I2CClient : public i2c::I2CDevice
+  {
+    public:
+    I2CClient() { this->semaphore_ = xSemaphoreCreateBinary(); }
+    ~I2CClient() { vSemaphoreDelete(this->semaphore_); }
+
+    protected:
+    SemaphoreHandle_t semaphore_;
+  };
+
+  class I2CClientSensor : public PollingComponent, public I2CClient
   {
   public:
     void setup() override;
@@ -37,7 +47,6 @@ namespace i2c_client
     void set_sensor(sensor::Sensor *sensor) { sensor_ = sensor; };
 
   protected:
-    SemaphoreHandle_t semaphore_;
     uint8_t reg_key_{0x0};
     sensor::Sensor *sensor_{nullptr};
 
@@ -46,7 +55,7 @@ namespace i2c_client
     i2c::ErrorCode last_error_;
   };
 
-  class I2CClientSwitch : public switch_::Switch, public Component, public i2c::I2CDevice
+  class I2CClientSwitch : public switch_::Switch, public Component, public I2CClient
   {
   public:
     // enum CommandLen : uint8_t { ADDR_8_BIT = 1, ADDR_16_BIT = 2 };

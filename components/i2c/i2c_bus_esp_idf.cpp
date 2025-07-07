@@ -73,7 +73,8 @@ void IDFI2CBus::setup() {
     this->mark_failed();
     return;
   }
-  this->semaphore_ = xSemaphoreCreateBinary();
+  // this->semaphore_ = xSemaphoreCreateBinary();
+  this->semaphore_ = xSemaphoreCreateMutex();
   if (this->semaphore_ == NULL) {
     ESP_LOGW(TAG, "i2c_bus_semaphore_instantiation failed");
     this->mark_failed();

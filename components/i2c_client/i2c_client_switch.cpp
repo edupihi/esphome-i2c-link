@@ -16,7 +16,7 @@ void I2CClientSwitch::setup() {
   ESP_LOGV(TAG, "Initialization complete");
 }
 
-bool I2CClientSwitch::read_remote_state() {
+bool I2CClientSwitch::read_remote_state(bool *st) {
 
   last_error_ = this->write((uint8_t *)&reg_key_state_, 1);
   if (last_error_ != i2c::ERROR_OK) {
@@ -49,7 +49,7 @@ bool I2CClientSwitch::read_remote_state() {
   return true;
 }
 
-bool I2CClientSwitch::write_remote_state() {
+bool I2CClientSwitch::write_remote_state(bool st) {
 
   last_error_ = this->write((uint8_t *)&reg_key_state_, 1);
   if (last_error_ != i2c::ERROR_OK) {
@@ -89,15 +89,16 @@ void I2CClientSwitch::write_state(bool state) {
   esphome::i2c::IDFI2CBus *bus = reinterpret_cast<esphome::i2c::IDFI2CBus *>(this->bus_);
   ESP_LOGVV(TAG,"Taking semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
   xSemaphoreTake(bus->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
-  // ESP_LOGVV(TAG,"Taken  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+  ESP_LOGVV(TAG,"Taken  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 
-  get_state();
+  bool st = false;
+  read_remote_state(&st);
 
   this->publish_state(state);
 
-  // ESP_LOGVV(TAG,"Giving semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+  ESP_LOGVV(TAG,"Giving semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
   xSemaphoreGive(bus->semaphore_);
-  // ESP_LOGVV(TAG,"Given  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+  ESP_LOGVV(TAG,"Given  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 
 }
 

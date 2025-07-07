@@ -28,7 +28,7 @@ void I2CClientSensor::update() {
   esphome::i2c::IDFI2CBus *bus = reinterpret_cast<esphome::i2c::IDFI2CBus *>(this->bus_);
   ESP_LOGVV(TAG,"Taking semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
   xSemaphoreTake(bus->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
-  // ESP_LOGVV(TAG,"Taken  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+  ESP_LOGVV(TAG,"Taken  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
   // Send command
   last_error_ = this->write((uint8_t *)&reg_key_, 1);
   if (last_error_ != i2c::ERROR_OK) {
@@ -58,9 +58,9 @@ void I2CClientSensor::update() {
     if (this->sensor_ != nullptr) {
       this->sensor_->publish_state(buf.value_fl);
     }
-    // ESP_LOGVV(TAG,"Giving semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+    ESP_LOGVV(TAG,"Giving semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
     xSemaphoreGive(bus->semaphore_);
-    // ESP_LOGVV(TAG,"Given  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+    ESP_LOGVV(TAG,"Given  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 
   });
 

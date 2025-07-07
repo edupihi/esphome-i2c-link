@@ -53,8 +53,8 @@ namespace i2c_client
 
   protected:
     void write_state(bool state) override;
-    bool get_state();
-
+    bool read_remote_state(bool *state);
+    bool write_remote_state(bool state);
     uint8_t reg_key_toggle_{0x0};
     uint8_t reg_key_state_{0x0};
 

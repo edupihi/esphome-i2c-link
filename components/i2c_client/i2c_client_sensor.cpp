@@ -3,20 +3,21 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include "../i2c/i2c_bus_esp_idf.h"
 
 namespace esphome {
 namespace i2c_client {
 
-static const char *const TAG = "i2c_client";
+static const char *const TAG = "i2c_client.sensor";
 
 void I2CClientSensor::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
 
-  // auto err = this->write(nullptr, 0);
-  // if (err != i2c::ERROR_OK) {
-  //   this->mark_failed();
-  //   return;
-  // }
+  auto err = this->write(nullptr, 0);
+  if (err != i2c::ERROR_OK) {
+    this->mark_failed();
+    return;
+  }
 
   ESP_LOGV(TAG, "Initialization complete");
 }
@@ -24,7 +25,10 @@ void I2CClientSensor::setup() {
 void I2CClientSensor::update() {
   ESP_LOGW(TAG, "Update starting..");
   // Synchronize
-  xSemaphoreTake(this->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
+  esphome::i2c::IDFI2CBus *bus = reinterpret_cast<esphome::i2c::IDFI2CBus *>(this->bus_);
+  ESP_LOGVV(TAG,"Taking semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+  xSemaphoreTake(bus->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
+  // ESP_LOGVV(TAG,"Taken  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
   // Send command
   last_error_ = this->write((uint8_t *)&reg_key_, 1);
   if (last_error_ != i2c::ERROR_OK) {
@@ -33,12 +37,11 @@ void I2CClientSensor::update() {
     return;
   }
 
-  this->set_timeout(10, [this]() {
+  this->set_timeout(SEMAPHORE_TIMEOUT, [this, bus]() {
     value_t buf = { .value_fl = 0.0f };
 
     last_error_ = this->read((uint8_t *)&(buf.value_raw), 4);
 
-    xSemaphoreGive(this->semaphore_);
 
     if (last_error_ != i2c::ERROR_OK) {
       ESP_LOGW(TAG, "Sensor read failed");
@@ -55,15 +58,16 @@ void I2CClientSensor::update() {
     if (this->sensor_ != nullptr) {
       this->sensor_->publish_state(buf.value_fl);
     }
+    // ESP_LOGVV(TAG,"Giving semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+    xSemaphoreGive(bus->semaphore_);
+    // ESP_LOGVV(TAG,"Given  semaphore(%p): value: %d",&(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 
-    // if (this->humidity_sensor_ != nullptr) {
-    //   // Relative humidity is in the second result word
-    //   float sensor_value_rh = buffer[1];
-    //   float rh = -6 + 125 * sensor_value_rh / 65535;
-
-    //   this->humidity_sensor_->publish_state(rh);
-    // }
   });
+
+  // Timed
+  // xSemaphoreGive(bus->semaphore_);
+  // ESP_LOGVV(TAG, "Timout receiving reg(0x%02X)", reg_key_);
+
 }
 
 

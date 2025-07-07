@@ -20,7 +20,7 @@ CONF_I2C_REG_KEY = "i2c_registry_key"
 CONF_I2C_SVC_SENSOR_ID = "i2c_svc_sensor_id"
 
 i2c_service_ns = cg.esphome_ns.namespace("i2c_service")
-I2CServiceComponent = i2c_service_ns.class_("I2CServiceComponent", cg.PollingComponent, i2c_slave.I2CSlaveDevice)
+I2CServiceSensorComponent = i2c_service_ns.class_("I2CServiceSensorComponent", cg.PollingComponent, i2c_slave.I2CSlaveDevice)
 
 def i2c_service_sensor_schema():
     """Create a schema for a sensor to be registered as i2c slave.
@@ -43,8 +43,8 @@ async def register_i2c_service_sensor(var, config):
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(I2CServiceComponent),
-            cv.Required(CONF_I2C_REG_KEY): cv.hex_uint16_t,
+            cv.GenerateID(): cv.declare_id(I2CServiceSensorComponent),
+            cv.Required(CONF_I2C_REG_KEY): cv.hex_uint8_t,
         }
     )
     .extend(cv.polling_component_schema("10s"))

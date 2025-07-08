@@ -11,14 +11,22 @@ static const char *const TAG = "i2c_service.switch";
 void I2CServiceSwitchComponent::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
 
-  this->get_i2c_slave()->upsert_i2c_registry(this->reg_key_state_, 0.0f); // register 0 as initial value
+  this->get_i2c_slave()->upsert_i2c_registry(this->reg_key_state_, (float) this->switch_->state); // register current state in state-registry
 
   ESP_LOGV(TAG, "Initialization complete");
 }
 
-// void I2CServiceSwitchComponent::update() {
-//   // this->get_i2c_slave()->upsert_i2c_registry(this->reg_key_, this->sensor_->state);
-// }
+void I2CServiceSwitchComponent::update() {
+  // this->get_i2c_slave()->upsert_i2c_registry(this->reg_key_, this->sensor_->state);
+  if (this->switch_->state != (bool) this->get_i2c_slave()->read_i2c_registry(this->reg_key_state_)) {
+    ESP_LOGVV(TAG, "Toggling %d -> %d",this->switch_->state, (bool) this->get_i2c_slave()->read_i2c_registry(this->reg_key_state_));
+    if (this->switch_->state == true) {
+      this->switch_->turn_off();
+    } else {
+      this->switch_->turn_on();
+    }
+  }
+}
 
 void I2CServiceSwitchComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "I2C Service Switch:");

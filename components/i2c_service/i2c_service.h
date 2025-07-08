@@ -24,19 +24,7 @@ namespace esphome
 {
 namespace i2c_service
 {
-  static const int SEMAPHORE_TIMEOUT = 5; // ms
-
-  class I2CService : public i2c_slave::I2CSlaveDevice
-  {
-    public:
-    I2CService() { this->semaphore_ = xSemaphoreCreateBinary(); }
-    ~I2CService() { vSemaphoreDelete(this->semaphore_); }
-
-    protected:
-    SemaphoreHandle_t semaphore_;
-  };
-
-  class I2CServiceSensorComponent : public PollingComponent, public I2CService
+  class I2CServiceSensorComponent : public PollingComponent, public i2c_slave::I2CSlaveDevice
   {
   public:
     void setup() override;
@@ -58,10 +46,12 @@ namespace i2c_service
 
   };
 
-  class I2CServiceSwitchComponent : public Component, public I2CService
+  // class I2CServiceSwitchComponent : public Component, public i2c_slave::I2CSlaveDevice
+  class I2CServiceSwitchComponent : public PollingComponent, public i2c_slave::I2CSlaveDevice
   {
   public:
     void setup() override;
+    void update() override;
     void dump_config() override;
     float get_setup_priority() const override { return setup_priority::DATA; }
 

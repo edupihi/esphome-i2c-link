@@ -3,6 +3,8 @@ from esphome.components import i2c_slave, switch
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
+    # ENTITY_CATEGORY_NONE,
+    # DEVICE_CLASS_SWITCH,
 )
 
 DEPENDENCIES = ["i2c_slave","switch"] # switch service depends on i2c slave and switch (extends I2CSlaveDevice)
@@ -11,9 +13,12 @@ CONF_I2C_SLAVE_ID = "i2c_slave_id"
 CONF_I2C_REG_KEY_TOGGLE = "i2c_registry_key_toggle"
 CONF_I2C_REG_KEY_STATE = "i2c_registry_key_state"
 CONF_I2C_SVC_SWITCH_ID = "i2c_svc_switch_id"
+CONF_SWITCH = "switch"
+ICON_TOGGLE = "mdi:toggle-switch"
 
 i2c_service_ns = cg.esphome_ns.namespace("i2c_service")
-I2CServiceSwitchComponent = i2c_service_ns.class_("I2CServiceSwitchComponent", cg.Component, i2c_slave.I2CSlaveDevice)
+# I2CServiceSwitchComponent = i2c_service_ns.class_("I2CServiceSwitchComponent", cg.Component, i2c_slave.I2CSlaveDevice)
+I2CServiceSwitchComponent = i2c_service_ns.class_("I2CServiceSwitchComponent", cg.PollingComponent, i2c_slave.I2CSlaveDevice)
 
 def i2c_service_switch_schema():
     """Create a schema for a switch to be registered as i2c slave.
@@ -41,7 +46,8 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_I2C_REG_KEY_STATE): cv.hex_uint8_t,
         }
     )
-    .extend(cv.COMPONENT_SCHEMA)
+    # .extend(cv.COMPONENT_SCHEMA)
+    .extend(cv.polling_component_schema("10s"))
     .extend(i2c_slave.i2c_slave_device_schema())
     .extend(i2c_service_switch_schema())
 )

@@ -7,6 +7,12 @@
 #include "esphome/core/helpers.h"
 #include <vector>
 
+#define I2C_DEBUG_TIMING
+
+#ifdef I2C_DEBUG_TIMING
+#include "driver/gptimer.h"
+#endif // I2C_DEBUG_TIMING
+
 namespace esphome
 {
 namespace i2c_client
@@ -37,6 +43,11 @@ namespace i2c_client
     /** last error code from i2c operation
      */
     i2c::ErrorCode last_error_;
+
+#ifdef I2C_DEBUG_TIMING
+    uint64_t timestamp_();
+    gptimer_handle_t gptimer = NULL;
+#endif // I2C_DEBUG_TIMING
   };
 
   class I2CClientSwitch : public switch_::Switch, public Component, public i2c::I2CDevice
@@ -63,6 +74,11 @@ namespace i2c_client
     /** last error code from i2c operation
      */
     i2c::ErrorCode last_error_;
+
+#ifdef I2C_DEBUG_TIMING
+    uint64_t timestamp_();
+    gptimer_handle_t gptimer = NULL;
+#endif // I2C_DEBUG_TIMING
   };
 
 } // namespace i2c_client

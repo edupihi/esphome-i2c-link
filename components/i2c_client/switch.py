@@ -9,7 +9,7 @@ from esphome.const import (
     ENTITY_CATEGORY_NONE,
 )
 
-DEPENDENCIES = ["i2c"] # client depends on i2c master (extends I2CDevice)
+DEPENDENCIES = ["i2c"] # client depends on i2c (master, extends i2c::I2CDevice)
 
 # CONF_WIFI_SIGNAL = "wifi_signal"
 # CONF_UPTIME = "uptime"
@@ -46,43 +46,4 @@ async def to_code(config):
 
     cg.add(var.set_registry_key_toggle(config[CONF_I2C_REG_KEY_TOGGLE]))
     cg.add(var.set_registry_key_state(config[CONF_I2C_REG_KEY_STATE]))
-
-# CONFIG_SCHEMA = (
-#     cv.Schema(
-#         {
-#             cv.GenerateID(): cv.declare_id(I2CClientSwitch),
-#             cv.Required(CONF_I2C_REG_KEY_TOGGLE): cv.hex_uint8_t,
-#             cv.Required(CONF_I2C_REG_KEY_STATE): cv.hex_uint8_t,
-#             cv.Optional(CONF_SWITCH): switch.switch_schema(
-#                 I2CClientSwitch,
-#                 device_class=DEVICE_CLASS_SWITCH,
-#                 block_inverted=True,
-#                 icon=ICON_TOGGLE,
-#                 entity_category=ENTITY_CATEGORY_NONE,
-#             ),
-#         }
-#     )
-#     .extend(cv.COMPONENT_SCHEMA)
-#     .extend(i2c.i2c_device_schema(0x0))
-# )
-
-# TYPES = {
-#     CONF_SWITCH: "set_switch",
-# }
-
-# async def to_code(config):
-#     var = cg.new_Pvariable(config[CONF_ID])
-#     await cg.register_component(var, config)
-#     await i2c.register_i2c_device(var, config)
-#     # # Can't use register_i2c_device because there is no CONF_ADDRESS
-#     # parent = await cg.get_variable(config[CONF_I2C_ID])
-#     # cg.add(var.set_i2c_bus(parent))
-
-#     cg.add(var.set_registry_key_toggle(config[CONF_I2C_REG_KEY_TOGGLE]))
-#     cg.add(var.set_registry_key_state(config[CONF_I2C_REG_KEY_STATE]))
-
-#     for key, funcName in TYPES.items():
-#         if key in config:
-#             sw = await switch.new_switch(config[key])
-#             cg.add(getattr(var, funcName)(sw))
 

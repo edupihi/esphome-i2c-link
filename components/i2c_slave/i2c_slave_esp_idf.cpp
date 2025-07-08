@@ -181,6 +181,13 @@ namespace i2c_slave
         } else if (evt == I2C_SLAVE_EVT_RX) {
           ESP_LOGW(TAG, "i2c_slave_receive_event (RW/RX) received");
 
+          reg = context->registry;
+
+          reg_it = reg->find(context->command_data); // lookup requested registry value
+          if (reg_it != reg->end() && context->command_data == 0x13) {
+            ESP_LOGVV(TAG, "Got write registry value (0x%02X): current value: %.0f", context->command_data, (reg_it->second).value_fl);
+            (reg_it->second).value_fl = (reg_it->second).value_fl > 0.0f ? 0.0f : 1.0f;
+          }
           // TODO: something?
         }
       }

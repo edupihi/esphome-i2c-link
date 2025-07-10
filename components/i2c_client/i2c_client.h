@@ -7,10 +7,10 @@
 #include "esphome/core/helpers.h"
 #include <vector>
 
-#ifndef I2C_DEBUG_TIMING
-#define I2C_DEBUG_TIMING
-#include "driver/gptimer.h"
-#endif // I2C_DEBUG_TIMING
+// #ifndef I2C_DEBUG_TIMING // MAX 2 GPTIMERS GLOBALLY, OTHERWISE NOT BOOTING
+// #define I2C_DEBUG_TIMING
+// #include "driver/gptimer.h"
+// #endif // I2C_DEBUG_TIMING
 
 namespace esphome
 {

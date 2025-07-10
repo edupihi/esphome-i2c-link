@@ -7,7 +7,7 @@ from esphome.const import (
     # DEVICE_CLASS_SWITCH,
 )
 
-DEPENDENCIES = ["i2c_slave","switch"] # switch service depends on i2c slave and switch (extends I2CSlaveDevice)
+DEPENDENCIES = ["i2c_slave"] # switch service depends on i2c slave (extends I2CSlaveDevice) and links to a switch
 
 CONF_I2C_SLAVE_ID = "i2c_slave_id"
 CONF_I2C_REG_KEY_TOGGLE = "i2c_registry_key_toggle"

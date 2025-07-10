@@ -12,11 +12,11 @@
 #include <freertos/semphr.h>
 #endif // ESP_IDF
 
-  typedef union value_u
-  {
-    float value_fl;
-    uint8_t value_raw[4];
-  } value_t;
+  // typedef union value_u
+  // {
+  //   float value_fl;
+  //   uint8_t value_raw[4];
+  // } value_t;
 
 
 
@@ -63,6 +63,9 @@ namespace i2c_service
 
     /// @brief get the pointer to the Switch object
     switch_::Switch  *get_switch() { return switch_; }
+
+    static void i2c_slave_cb(void *);
+    static void i2c_slave_cb2(void *);
 
   protected:
     uint8_t reg_key_toggle_{0x0};

@@ -7,9 +7,8 @@
 #include "esphome/core/helpers.h"
 #include <vector>
 
+#ifndef I2C_DEBUG_TIMING
 #define I2C_DEBUG_TIMING
-
-#ifdef I2C_DEBUG_TIMING
 #include "driver/gptimer.h"
 #endif // I2C_DEBUG_TIMING
 
@@ -50,11 +49,13 @@ namespace i2c_client
 #endif // I2C_DEBUG_TIMING
   };
 
-  class I2CClientSwitch : public switch_::Switch, public Component, public i2c::I2CDevice
+  // class I2CClientSwitch : public switch_::Switch, public Component, public i2c::I2CDevice
+  class I2CClientSwitch : public switch_::Switch, public PollingComponent, public i2c::I2CDevice
   {
   public:
     void setup() override;
     void dump_config() override;
+    void update() override;
     float get_setup_priority() const override { return setup_priority::DATA; };
 
     void set_registry_key_state(uint8_t key) { reg_key_state_ = key; };
@@ -63,9 +64,10 @@ namespace i2c_client
     // void set_switch(switch_::Switch *sw) { switch_ = sw; };
 
   protected:
-    void write_state(bool state) override;
-    bool read_remote_state(bool *state);
-    bool write_remote_state(bool state);
+    void write_state(bool state) override; // this implements write_state(..) from switch_::Switch
+    bool request_remote_state(uint8_t *reg_key_, bool *st);
+    // bool read_remote_state(bool *state);
+    // bool write_remote_state(bool state);
     uint8_t reg_key_toggle_{0x0};
     uint8_t reg_key_state_{0x0};
 

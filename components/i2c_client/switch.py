@@ -19,8 +19,8 @@ CONF_I2C_REG_KEY_TOGGLE = "i2c_registry_key_toggle"
 CONF_I2C_REG_KEY_STATE = "i2c_registry_key_state"
 
 i2c_client_ns = cg.esphome_ns.namespace("i2c_client")
-I2CClientSwitch = i2c_client_ns.class_("I2CClientSwitch", switch.Switch, cg.Component, i2c.I2CDevice)
-
+# I2CClientSwitch = i2c_client_ns.class_("I2CClientSwitch", switch.Switch, cg.Component, i2c.I2CDevice)
+I2CClientSwitch = i2c_client_ns.class_("I2CClientSwitch", switch.Switch, cg.PollingComponent, i2c.I2CDevice)
 
 CONFIG_SCHEMA = (
     switch.switch_schema(
@@ -35,7 +35,8 @@ CONFIG_SCHEMA = (
         cv.Required(CONF_I2C_REG_KEY_TOGGLE): cv.hex_uint8_t,
         cv.Required(CONF_I2C_REG_KEY_STATE): cv.hex_uint8_t,
     })
-    .extend(cv.COMPONENT_SCHEMA)
+    # .extend(cv.COMPONENT_SCHEMA)
+    .extend(cv.polling_component_schema("10s"))
     .extend(i2c.i2c_device_schema(0x0))
 )
 

@@ -10,6 +10,7 @@ namespace esphome
 {
 namespace i2c_slave
 {
+
   class IDFI2CSlave : public I2CSlave, public Component
   {
     public:

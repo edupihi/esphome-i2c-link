@@ -1,4 +1,4 @@
-#ifdef USE_ESP_IDF
+// #ifdef USE_ESP_IDF
 
 #include "i2c_slave_esp_idf.h"
 #include <cinttypes>
@@ -30,6 +30,7 @@ namespace i2c_slave
     uint8_t command_data;
     i2c_slave_dev_handle_t handle;
     i2c_slave_reg_t *registry;
+    void *svc_handle;
   } i2c_slave_context_t;
 
   typedef enum
@@ -37,6 +38,7 @@ namespace i2c_slave
     I2C_SLAVE_EVT_RX,
     I2C_SLAVE_EVT_TX
   } i2c_slave_event_t;
+
 
   void IDFI2CSlave::setup()
   {
@@ -46,8 +48,9 @@ namespace i2c_slave
     // registry_.insert({ FIRST_COMMAND, 0x12345678 });
     static i2c_port_t next_port = I2C_NUM_0;
 
-    // BUG: can't create new default event loop if f.e. wifi already defines it (see: wifi_component_esp_idf.cpp)
+    // BUG(?): can't create new default event loop if f.e. wifi already defines it (see: wifi_component_esp_idf.cpp)
     // ESP_ERROR_CHECK(esp_event_loop_create_default());
+    // or
     // esp_err_t err = esp_event_loop_create_default();
     // if (err != ESP_OK) {
     //   ESP_LOGW(TAG, "i2c_slave_event_loop_creation_failed: %s", esp_err_to_name(err));
@@ -153,17 +156,14 @@ namespace i2c_slave
 
           reg_it = reg->find(context->command_data); // lookup requested registry value
           if (reg_it == reg->end()) { // we're past-the-end = not found
-            ESP_LOGE(TAG, "Non-existing registry value (0x%02X)requested", context->command_data);
+            ESP_LOGE(TAG, "Non-existing registry value, 0x%02X, requested", context->command_data);
             data_buffer = zero_buffer;
             buffer_size = sizeof(zero_buffer);
           } else {
-            // data_buffer = reinterpret_cast<uint8_t *>(&(reg_it->second)); // eg. (int32_t) 0x12345678 => TX: 78563412
-            // data_buffer = (uint8_t *)& (reg_it->second);
-            // buffer_size = sizeof(reg_it->second);
-            ESP_LOGVV(TAG, "Sending reg(0x%02X): %.2f", reg_it->first, (reg_it->second).value_fl);
-            ESP_LOGVV(TAG, "Sending reg(0x%02X): 0x%02X 0x%02X 0x%02X 0x%02X", reg_it->first, (reg_it->second).value_raw[0], (reg_it->second).value_raw[1], (reg_it->second).value_raw[2], (reg_it->second).value_raw[3]);
-            ESP_LOGVV(TAG, "Sizeof union : %d", sizeof(reg_it->second));
-            data_buffer = (reg_it->second).value_raw;
+            ESP_LOGVV(TAG, "Sending reg(0x%02X): %.2f", reg_it->first, (reg_it->second).val.value_fl);
+            ESP_LOGVV(TAG, "Sending reg(0x%02X): 0x%02X 0x%02X 0x%02X 0x%02X", reg_it->first, (reg_it->second).val.value_raw[0], (reg_it->second).val.value_raw[1], (reg_it->second).val.value_raw[2], (reg_it->second).val.value_raw[3]);
+            ESP_LOGVV(TAG, "Sizeof union : %d", sizeof(reg_it->second).val);
+            data_buffer = (reg_it->second).val.value_raw;
             buffer_size = 4;
           }
 
@@ -182,18 +182,20 @@ namespace i2c_slave
           ESP_LOGW(TAG, "i2c_slave_receive_event (RW/RX) received");
 
           reg = context->registry;
-
           reg_it = reg->find(context->command_data); // lookup requested registry value
-          if (reg_it != reg->end() && context->command_data == 0x13) {
-            ESP_LOGVV(TAG, "Got write registry value (0x%02X): current value: %.0f", context->command_data, (reg_it->second).value_fl);
-            (reg_it->second).value_fl = (reg_it->second).value_fl > 0.0f ? 0.0f : 1.0f;
+
+          if (reg_it != reg->end() && (reg_it->second).cb != NULL) {
+            i2c_slave_callback_t cb = (reg_it->second).cb;
+            ESP_LOGVV(TAG, "Calling cb for (0x%02X): *f = %p", context->command_data, cb);
+              // call the callback (static member) function, give the pointer to the component object as parameter
+            cb((void *)(reg_it->second).svc_handle);
           }
-          // TODO: something?
         }
       }
     }
     vTaskDelete(NULL);
   }
+
   void IDFI2CSlave::dump_config()
   {
     ESP_LOGCONFIG(TAG, "I2C SLAVE:");
@@ -206,4 +208,4 @@ namespace i2c_slave
 } // namespace i2c_slave
 } // namespace esphome
 
-#endif // USE_ESP_IDF
+// #endif // USE_ESP_IDF

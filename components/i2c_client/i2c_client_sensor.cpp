@@ -69,7 +69,7 @@ void I2CClientSensor::update() {
     return;
   }
 
-  #ifdef I2C_DEBUG_TIMING
+#ifdef I2C_DEBUG_TIMING
   t[ti++] = timestamp_();
   ESP_LOGVV(TAG,"[%lld : %7.3f ms] Wrote command(0x%02X)", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), reg_key_);
   this->set_timeout(SEMAPHORE_TIMEOUT, [this, bus, t, ti]() {

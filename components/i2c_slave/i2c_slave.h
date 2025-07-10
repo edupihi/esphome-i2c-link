@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <utility>
 #include <map>
+#include <functional>
 
 namespace esphome
 {
@@ -22,12 +23,24 @@ namespace i2c_slave
     ERROR_CRC = 7,              ///< bytes received with a CRC error
   };
 
-  typedef union value_u {
+  typedef union value_u
+  {
     float value_fl;
     uint8_t value_raw[4];
   } value_t;
 
-  typedef std::map<uint8_t, value_t> i2c_slave_reg_t; // key = uint16_t, val = value_t (union)
+  // signature for callback function
+  typedef void (*i2c_slave_callback_t)(void *arg);
+
+  typedef struct
+  {
+    value_t val;              // val = value_t (union)
+    i2c_slave_callback_t cb;  // callback = func
+    void *svc_handle;         // pointer to whole object (not only pointer to static member function)
+  } reg_val_t;
+
+  // registry type
+  typedef std::map<uint8_t, reg_val_t> i2c_slave_reg_t; // key = uint16_t, val = reg_val_t
 
   /// @brief This Class provides the methods to setup the communication as a single i2c slave address on a bus.
   /// @note The I2CSlave virtual class follows a *Factory design pattern* that provides all the interfaces methods required
@@ -51,15 +64,48 @@ namespace i2c_slave
     /// @return the I2C address
     uint8_t get_i2c_address() const { return this->address_; }
 
-    void upsert_i2c_registry(uint8_t key, float val) { auto it = registry_.find(key); if (it != registry_.end()) registry_[key].value_fl = val; else registry_.insert({ key, { .value_fl = val } }); };
+    void upsert_i2c_registry(uint8_t key, float val)
+    {
+      auto it = registry_.find(key);
+      if (it != registry_.end())
+        registry_[key].val.value_fl = val;
+      else
+        registry_.insert({key, {.val = {.value_fl = val}}});
+    };
 
-    float read_i2c_registry(uint8_t key) { auto it = registry_.find(key); if (it != registry_.end()) return registry_[key].value_fl; else return 0.0f; }; // TODO: don't return 0.0 if key not existing
+    void set_cb_i2c_registry(uint8_t key, i2c_slave_callback_t f, void *svc_handle)
+    {
+      auto it = registry_.find(key);
+      if (it != registry_.end()) {
+        registry_[key].cb = f;
+        registry_[key].svc_handle = svc_handle;
+      }
+    };
+
+    float read_i2c_registry(uint8_t key)
+    {
+      auto it = registry_.find(key);
+      if (it != registry_.end())
+        return registry_[key].val.value_fl;
+      else
+        return 0.0f;
+    }; // TODO: don't return 0.0 if key not existing
+
+    reg_val_t *get_i2c_registry(uint8_t key)
+    {
+      auto it = registry_.find(key);
+      if (it != registry_.end())
+        return &registry_[key];
+      else
+        return NULL;
+    };
 
   protected:
     uint8_t sda_pin_;
     uint8_t scl_pin_;
     uint8_t address_{0x00};    ///< store the address of the device on the bus
     i2c_slave_reg_t registry_; // key/value data store for all i2c registers
+    void *svc_handle_;         // pointer to i2c_service/component-instance
   };
 
   /// @brief This Class provides the methods to receive/respond bytes as a single i2c slave device.

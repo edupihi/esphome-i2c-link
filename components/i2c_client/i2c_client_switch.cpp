@@ -38,106 +38,95 @@ void I2CClientSwitch::setup() {
   ESP_LOGV(TAG, "Initialization complete");
 }
 
-bool I2CClientSwitch::read_remote_state(bool *st) {
+bool I2CClientSwitch::request_remote_state(uint8_t *reg_key, bool *st) {
 
-  last_error_ = this->write((uint8_t *)&reg_key_state_, 1);
-  if (last_error_ != i2c::ERROR_OK) {
-    // Warning will be printed only if warning status is not set yet
-    this->status_set_warning("Failed to send command");
-    return false;
-  }
-
-  this->set_timeout(10, [this]() {
-    value_t buf = { .value_fl = 0.0f };
-
-    last_error_ = this->read((uint8_t *)&(buf.value_raw), 4);
-
-    if (last_error_ != i2c::ERROR_OK) {
-      ESP_LOGW(TAG, "Sensor read failed");
-      this->status_set_warning();
-      return false;
-    }
-
-    this->status_clear_warning();
-
-    ESP_LOGVV(TAG, "Received reg(0x%02X): 0x%02X 0x%02X 0x%02X 0x%02X <==> %.2f", reg_key_state_, buf.value_raw[0], buf.value_raw[1], buf.value_raw[2], buf.value_raw[3], buf.value_fl);
-
-    return true;
-  });
-
-  return true;
-}
-
-bool I2CClientSwitch::write_remote_state(bool st) {
-
-  last_error_ = this->write((uint8_t *)&reg_key_state_, 1);
-  if (last_error_ != i2c::ERROR_OK) {
-    // Warning will be printed only if warning status is not set yet
-    this->status_set_warning("Failed to send command");
-    return false;
-  }
-
-  this->set_timeout(10, [this]() {
-    value_t buf = { .value_fl = 0.0f };
-
-    last_error_ = this->read((uint8_t *)&(buf.value_raw), 4);
-
-    if (last_error_ != i2c::ERROR_OK) {
-      ESP_LOGW(TAG, "Sensor read failed");
-      this->status_set_warning();
-      return false;
-    }
-
-    this->status_clear_warning();
-
-    ESP_LOGVV(TAG, "Received reg(0x%02X): 0x%02X 0x%02X 0x%02X 0x%02X <==> %.2f", reg_key_state_, buf.value_raw[0], buf.value_raw[1], buf.value_raw[2], buf.value_raw[3], buf.value_fl);
-
-    return true;
-  });
-
-  return true;
-}
-
-// Implement write_state from switch_::Switch
-void I2CClientSwitch::write_state(bool state) {
 #ifdef I2C_DEBUG_TIMING
   uint64_t t[5] = {0};
   uint8_t ti = 0;
   t[ti++] = timestamp_();
-  ESP_LOGD(TAG, "[%lld : %4.3f ms] Switch write_state started", t[0], 0.0f);
+  ESP_LOGD(TAG, "[%lld : %4.3f ms] Switch 'request_remote_state' (0x%02X) started", t[0], 0.0f, *reg_key);
 #endif // I2C_DEBUG_TIMING
 
-  // Take semaphore to ensure that no other sensor/switch is requesting on i2cbus
+// Take semaphore to ensure that no other sensor/switch is requesting on i2cbus
   esphome::i2c::IDFI2CBus *bus = reinterpret_cast<esphome::i2c::IDFI2CBus *>(this->bus_);
   xSemaphoreTake(bus->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
 
 #ifdef I2C_DEBUG_TIMING
   t[ti++] = timestamp_();
-  ESP_LOGVV(TAG,"[%lld : %4.3f ms] Took semaphore(%p): value: %d", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+  ESP_LOGVV(TAG,"[%lld : %7.3f ms] Took semaphore(%p): value: %d", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 #endif // I2C_DEBUG_TIMING
 
+  // last_error_ = this->write((uint8_t *)&reg_key_state_, 1);
+  last_error_ = this->write(reg_key, 1);
+  if (last_error_ != i2c::ERROR_OK) {
+    // Warning will be printed only if warning status is not set yet
+    this->status_set_warning("Failed to send command") ;
+    return false;
+  }
+
+#ifdef I2C_DEBUG_TIMING
+  t[ti++] = timestamp_();
+  ESP_LOGVV(TAG,"[%lld : %7.3f ms] Wrote command(0x%02X)", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), reg_key);
+  this->set_timeout(SEMAPHORE_TIMEOUT, [this, bus, reg_key, t, ti]() {
+#else
+  this->set_timeout(SEMAPHORE_TIMEOUT, [this, bus, reg_key]() {
+#endif // I2C_DEBUG_TIMING
+
+    value_t buf = { .value_fl = 0.0f };
+
+    last_error_ = this->read((uint8_t *)&(buf.value_raw), 4);
+
+
+    if (last_error_ != i2c::ERROR_OK) {
+      ESP_LOGW(TAG, "Response read failed");
+      this->status_set_warning();
+      return false;
+    }
+
+    this->status_clear_warning();
+
+#ifdef I2C_DEBUG_TIMING
+    uint64_t t0 = timestamp_();
+    ESP_LOGVV(TAG, "[%lld : %7.3f ms] Received reg(0x%02X): 0x%02X 0x%02X 0x%02X 0x%02X <==> %.2f", t0, (float)((t0 - t[ti-1]) / 1000.0), *reg_key, buf.value_raw[0], buf.value_raw[1], buf.value_raw[2], buf.value_raw[3], buf.value_fl);
+#endif // I2C_DEBUG_TIMING
+
+    // Evaluate and publish state
+    bool remote_state = (bool)buf.value_fl;
+    if (this->state != remote_state) {
+      this->state = remote_state;
+      this->publish_state(remote_state);
+      #ifdef I2C_DEBUG_TIMING
+          uint64_t t3 = timestamp_();
+          ESP_LOGVV(TAG, "[%lld : %7.3f ms] Published updated state: %d", t3, (float)((t3 - t0) / 1000.0), remote_state);
+      #endif // I2C_DEBUG_TIMING
+    }
+
+    // Release seamphore
+    xSemaphoreGive(bus->semaphore_);
+
+#ifdef I2C_DEBUG_TIMING
+    uint64_t t2 = timestamp_();
+    ESP_LOGVV(TAG,"[%lld : %7.3f ms] Gave semaphore(%p): value: %d", t2, (float)((t2 - t0) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
+#endif // I2C_DEBUG_TIMING
+
+    return true;
+  });
+
+  return true;
+}
+
+// Override write_state(..) from switch_::Switch
+void I2CClientSwitch::write_state(bool state) {
   bool st = false;
-  read_remote_state(&st);
+  // request toggle-reg = toggle the remote switch
+  request_remote_state(&reg_key_toggle_, &st);
+}
 
-#ifdef I2C_DEBUG_TIMING
-  t[ti++] = timestamp_();
-  ESP_LOGVV(TAG,"[%lld : %4.3f ms] Read remote state (0x%.2X): %d", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_), reg_key_state_, st);
-#endif // I2C_DEBUG_TIMING
-
-  this->publish_state(state);
-
-#ifdef I2C_DEBUG_TIMING
-  t[ti++] = timestamp_();
-  ESP_LOGVV(TAG,"[%lld : %4.3f ms] Published state", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0));
-#endif // I2C_DEBUG_TIMING
-
-  xSemaphoreGive(bus->semaphore_);
-
-#ifdef I2C_DEBUG_TIMING
-  t[ti++] = timestamp_();
-  ESP_LOGVV(TAG,"[%lld : %4.3f ms] Gave semaphore(%p): value: %d", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
-#endif // I2C_DEBUG_TIMING
-
+// Override update() from PollingComponent
+void I2CClientSwitch::update() {
+  bool st = false;
+  // request state-reg = read-only state of remote switch
+  request_remote_state(&reg_key_state_, &st);
 }
 
 void I2CClientSwitch::dump_config() {

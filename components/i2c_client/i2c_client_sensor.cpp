@@ -10,29 +10,29 @@ namespace i2c_client {
 
 static const char *const TAG = "i2c_client.sensor";
 
-#ifdef I2C_DEBUG_TIMING
-uint64_t I2CClientSensor::timestamp_() {
-  uint64_t count;
-  gptimer_get_raw_count(this->gptimer, &count);
-  return count;
-}
-#endif // I2C_DEBUG_TIMING
+// #ifdef I2C_DEBUG_TIMING
+// uint64_t I2CClientSensor::timestamp_() {
+//   uint64_t count;
+//   gptimer_get_raw_count(this->gptimer, &count);
+//   return count;
+// }
+// #endif // I2C_DEBUG_TIMING
 
 void I2CClientSensor::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
 
-#ifdef I2C_DEBUG_TIMING
-  gptimer_config_t timer_config = {
-    .clk_src = GPTIMER_CLK_SRC_DEFAULT,
-    .direction = GPTIMER_COUNT_UP,
-    .resolution_hz = 1000000, // 1MHz, 1 tick=1us
-    .intr_priority = 0,
-    .flags = { .intr_shared = 0 },
-  };
-  ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &(this->gptimer)));
-  ESP_ERROR_CHECK(gptimer_enable(this->gptimer));
-  ESP_ERROR_CHECK(gptimer_start(this->gptimer));
-#endif // I2C_DEBUG_TIMING
+// #ifdef I2C_DEBUG_TIMING
+//   gptimer_config_t timer_config = {
+//     .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+//     .direction = GPTIMER_COUNT_UP,
+//     .resolution_hz = 1000000, // 1MHz, 1 tick=1us
+//     .intr_priority = 0,
+//     .flags = { .intr_shared = 0 },
+//   };
+//   ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &(this->gptimer)));
+//   ESP_ERROR_CHECK(gptimer_enable(this->gptimer));
+//   ESP_ERROR_CHECK(gptimer_start(this->gptimer));
+// #endif // I2C_DEBUG_TIMING
 
 auto err = this->write(nullptr, 0);
   if (err != i2c::ERROR_OK) {
@@ -45,19 +45,20 @@ auto err = this->write(nullptr, 0);
 
 void I2CClientSensor::update() {
 
-#ifdef I2C_DEBUG_TIMING
+  esphome::i2c::IDFI2CBus *bus = reinterpret_cast<esphome::i2c::IDFI2CBus *>(this->bus_);
+
+  #ifdef I2C_DEBUG_TIMING
   uint64_t t[5] = {0};
   uint8_t ti = 0;
-  t[ti++] = timestamp_();
+  t[ti++] = bus->timestamp();
   ESP_LOGVV(TAG, "[%lld : %7.3f ms] Sensor update started", t[0], 0.0f);
 #endif // I2C_DEBUG_TIMING
 
 // Synchronize
-  esphome::i2c::IDFI2CBus *bus = reinterpret_cast<esphome::i2c::IDFI2CBus *>(this->bus_);
   xSemaphoreTake(bus->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
 
 #ifdef I2C_DEBUG_TIMING
-  t[ti++] = timestamp_();
+  t[ti++] = bus->timestamp();
   ESP_LOGVV(TAG,"[%lld : %7.3f ms] Took semaphore(%p): current value: %d", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 #endif // I2C_DEBUG_TIMING
 
@@ -70,7 +71,7 @@ void I2CClientSensor::update() {
   }
 
 #ifdef I2C_DEBUG_TIMING
-  t[ti++] = timestamp_();
+  t[ti++] = bus->timestamp();
   ESP_LOGVV(TAG,"[%lld : %7.3f ms] Wrote command(0x%02X)", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), reg_key_);
   this->set_timeout(SEMAPHORE_TIMEOUT, [this, bus, t, ti]() {
 #else
@@ -88,7 +89,8 @@ void I2CClientSensor::update() {
     this->status_clear_warning();
 
 #ifdef I2C_DEBUG_TIMING
-    uint64_t t0 = timestamp_();
+    uint64_t t0 = bus->timestamp();
+
     ESP_LOGVV(TAG, "[%lld : %7.3f ms] Received reg(0x%02X): 0x%02X 0x%02X 0x%02X 0x%02X <==> %.2f", t0, (float)((t0 - t[ti-1]) / 1000.0), reg_key_, buf.value_raw[0], buf.value_raw[1], buf.value_raw[2], buf.value_raw[3], buf.value_fl);
 #endif // I2C_DEBUG_TIMING
 
@@ -98,7 +100,7 @@ void I2CClientSensor::update() {
     }
 
 #ifdef I2C_DEBUG_TIMING
-    uint64_t t1 = timestamp_();
+    uint64_t t1 = bus->timestamp();
     ESP_LOGVV(TAG,"[%lld : %7.3f ms] Published state", t1, (float)((t1 - t0) / 1000.0));
 #endif // I2C_DEBUG_TIMING
 
@@ -106,7 +108,7 @@ void I2CClientSensor::update() {
     xSemaphoreGive(bus->semaphore_);
 
 #ifdef I2C_DEBUG_TIMING
-    uint64_t t2 = timestamp_();
+    uint64_t t2 = bus->timestamp();
     ESP_LOGVV(TAG,"[%lld : %7.3f ms] Gave semaphore(%p): value: %d", t2, (float)((t2 - t1) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 #endif // I2C_DEBUG_TIMING
 

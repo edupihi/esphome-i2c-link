@@ -10,48 +10,28 @@ namespace i2c_client {
 
 static const char *const TAG = "i2c_client.switch";
 
-#ifdef I2C_DEBUG_TIMING
-uint64_t I2CClientSwitch::timestamp_() {
-  uint64_t count;
-  gptimer_get_raw_count(this->gptimer, &count);
-  return count;
-}
-#endif // I2C_DEBUG_TIMING
-
 void I2CClientSwitch::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
-
-#ifdef I2C_DEBUG_TIMING
-  gptimer_config_t timer_config = {
-    .clk_src = GPTIMER_CLK_SRC_DEFAULT,
-    .direction = GPTIMER_COUNT_UP,
-    .resolution_hz = 1000000, // 1MHz, 1 tick=1us
-    .intr_priority = 0,
-    .flags = { .intr_shared = 0 },
-  };
-  ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &(this->gptimer)));
-  ESP_ERROR_CHECK(gptimer_enable(this->gptimer));
-  ESP_ERROR_CHECK(gptimer_start(this->gptimer));
-#endif // I2C_DEBUG_TIMING
 
   ESP_LOGV(TAG, "Initialization complete");
 }
 
 bool I2CClientSwitch::request_remote_state(uint8_t *reg_key, bool *st) {
 
+  esphome::i2c::IDFI2CBus *bus = reinterpret_cast<esphome::i2c::IDFI2CBus *>(this->bus_);
+
 #ifdef I2C_DEBUG_TIMING
   uint64_t t[5] = {0};
   uint8_t ti = 0;
-  t[ti++] = timestamp_();
+  t[ti++] = bus->timestamp();
   ESP_LOGD(TAG, "[%lld : %4.3f ms] Switch 'request_remote_state' (0x%02X) started", t[0], 0.0f, *reg_key);
 #endif // I2C_DEBUG_TIMING
 
 // Take semaphore to ensure that no other sensor/switch is requesting on i2cbus
-  esphome::i2c::IDFI2CBus *bus = reinterpret_cast<esphome::i2c::IDFI2CBus *>(this->bus_);
   xSemaphoreTake(bus->semaphore_, SEMAPHORE_TIMEOUT / portTICK_PERIOD_MS);
 
 #ifdef I2C_DEBUG_TIMING
-  t[ti++] = timestamp_();
+  t[ti++] = bus->timestamp();
   ESP_LOGVV(TAG,"[%lld : %7.3f ms] Took semaphore(%p): value: %d", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 #endif // I2C_DEBUG_TIMING
 
@@ -64,7 +44,7 @@ bool I2CClientSwitch::request_remote_state(uint8_t *reg_key, bool *st) {
   }
 
 #ifdef I2C_DEBUG_TIMING
-  t[ti++] = timestamp_();
+  t[ti++] = bus->timestamp();
   ESP_LOGVV(TAG,"[%lld : %7.3f ms] Wrote command(0x%02X)", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), *reg_key);
   this->set_timeout(SEMAPHORE_TIMEOUT, [this, bus, reg_key, t, ti]() {
 #else
@@ -85,7 +65,7 @@ bool I2CClientSwitch::request_remote_state(uint8_t *reg_key, bool *st) {
     this->status_clear_warning();
 
 #ifdef I2C_DEBUG_TIMING
-    uint64_t t0 = timestamp_();
+    uint64_t t0 = bus->timestamp();
     ESP_LOGVV(TAG, "[%lld : %7.3f ms] Received reg(0x%02X): 0x%02X 0x%02X 0x%02X 0x%02X <==> %.2f", t0, (float)((t0 - t[ti-1]) / 1000.0), *reg_key, buf.value_raw[0], buf.value_raw[1], buf.value_raw[2], buf.value_raw[3], buf.value_fl);
 #endif // I2C_DEBUG_TIMING
 
@@ -94,17 +74,17 @@ bool I2CClientSwitch::request_remote_state(uint8_t *reg_key, bool *st) {
     if (this->state != remote_state) {
       this->state = remote_state;
       this->publish_state(remote_state);
-      #ifdef I2C_DEBUG_TIMING
-          uint64_t t3 = timestamp_();
-          ESP_LOGVV(TAG, "[%lld : %7.3f ms] Published updated state: %d", t3, (float)((t3 - t0) / 1000.0), remote_state);
-      #endif // I2C_DEBUG_TIMING
+#ifdef I2C_DEBUG_TIMING
+      uint64_t t3 = bus->timestamp();
+      ESP_LOGVV(TAG, "[%lld : %7.3f ms] Published updated state: %d", t3, (float)((t3 - t0) / 1000.0), remote_state);
+#endif // I2C_DEBUG_TIMING
     }
 
     // Release seamphore
     xSemaphoreGive(bus->semaphore_);
 
 #ifdef I2C_DEBUG_TIMING
-    uint64_t t2 = timestamp_();
+    uint64_t t2 = bus->timestamp();
     ESP_LOGVV(TAG,"[%lld : %7.3f ms] Gave semaphore(%p): value: %d", t2, (float)((t2 - t0) / 1000.0), &(bus->semaphore_), uxSemaphoreGetCount(bus->semaphore_));
 #endif // I2C_DEBUG_TIMING
 

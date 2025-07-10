@@ -17,8 +17,30 @@ namespace i2c {
 
 static const char *const TAG = "i2c.idf.2";
 
+#ifdef I2C_DEBUG_TIMING
+uint64_t IDFI2CBus::timestamp() {
+  uint64_t count;
+  gptimer_get_raw_count(this->gptimer, &count);
+  return count;
+}
+#endif // I2C_DEBUG_TIMING
+
 void IDFI2CBus::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
+
+#ifdef I2C_DEBUG_TIMING
+  gptimer_config_t timer_config = {
+    .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+    .direction = GPTIMER_COUNT_UP,
+    .resolution_hz = 1000000, // 1MHz, 1 tick=1us
+    .intr_priority = 0,
+    .flags = { .intr_shared = 0 },
+  };
+  ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &(this->gptimer)));
+  ESP_ERROR_CHECK(gptimer_enable(this->gptimer));
+  ESP_ERROR_CHECK(gptimer_start(this->gptimer));
+#endif // I2C_DEBUG_TIMING
+
   static i2c_port_t next_port = I2C_NUM_0;
   port_ = next_port;
 #if SOC_HP_I2C_NUM > 1

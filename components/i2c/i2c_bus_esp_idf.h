@@ -9,6 +9,11 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
+#ifndef I2C_DEBUG_TIMING // MAX 2 GPTIMERS GLOBALLY, OTHERWISE NOT BOOTING
+#define I2C_DEBUG_TIMING
+#include "driver/gptimer.h"
+#endif // I2C_DEBUG_TIMING
+
 namespace esphome {
 namespace i2c {
 
@@ -38,6 +43,10 @@ class IDFI2CBus : public I2CBus, public Component {
 
   SemaphoreHandle_t semaphore_;
 
+#ifdef I2C_DEBUG_TIMING
+  uint64_t timestamp();
+#endif // I2C_DEBUG_TIMING
+
  private:
   void recover_();
   RecoveryCode recovery_result_;
@@ -51,6 +60,11 @@ class IDFI2CBus : public I2CBus, public Component {
   uint32_t frequency_;
   uint32_t timeout_ = 0;
   bool initialized_ = false;
+
+#ifdef I2C_DEBUG_TIMING
+  gptimer_handle_t gptimer = NULL;
+#endif // I2C_DEBUG_TIMING
+
 };
 
 }  // namespace i2c

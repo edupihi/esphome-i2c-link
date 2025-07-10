@@ -20,7 +20,6 @@ uint64_t I2CClientSwitch::timestamp_() {
 
 void I2CClientSwitch::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
-  // get_state();
 
 #ifdef I2C_DEBUG_TIMING
   gptimer_config_t timer_config = {
@@ -66,7 +65,7 @@ bool I2CClientSwitch::request_remote_state(uint8_t *reg_key, bool *st) {
 
 #ifdef I2C_DEBUG_TIMING
   t[ti++] = timestamp_();
-  ESP_LOGVV(TAG,"[%lld : %7.3f ms] Wrote command(0x%02X)", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), reg_key);
+  ESP_LOGVV(TAG,"[%lld : %7.3f ms] Wrote command(0x%02X)", t[ti-1], (float)((t[ti-1] - t[ti-2]) / 1000.0), *reg_key);
   this->set_timeout(SEMAPHORE_TIMEOUT, [this, bus, reg_key, t, ti]() {
 #else
   this->set_timeout(SEMAPHORE_TIMEOUT, [this, bus, reg_key]() {
@@ -118,15 +117,15 @@ bool I2CClientSwitch::request_remote_state(uint8_t *reg_key, bool *st) {
 // Override write_state(..) from switch_::Switch
 void I2CClientSwitch::write_state(bool state) {
   bool st = false;
-  // request toggle-reg = toggle the remote switch
-  request_remote_state(&reg_key_toggle_, &st);
+  // request to turnon/turnoff the remote switch
+  state == true ? request_remote_state(&reg_key_turnon_, &st) : request_remote_state(&reg_key_turnoff_, &st);
 }
 
 // Override update() from PollingComponent
 void I2CClientSwitch::update() {
   bool st = false;
-  // request state-reg = read-only state of remote switch
-  request_remote_state(&reg_key_state_, &st);
+  // request read-reg = read-only state of remote switch
+  request_remote_state(&reg_key_read_, &st);
 }
 
 void I2CClientSwitch::dump_config() {

@@ -15,8 +15,9 @@ DEPENDENCIES = ["i2c"] # client depends on i2c (master, extends i2c::I2CDevice)
 # CONF_UPTIME = "uptime"
 CONF_SWITCH = "switch"
 ICON_TOGGLE = "mdi:toggle-switch"
-CONF_I2C_REG_KEY_TOGGLE = "i2c_registry_key_toggle"
-CONF_I2C_REG_KEY_STATE = "i2c_registry_key_state"
+CONF_I2C_REG_KEY_READ = "i2c_registry_key_read"
+CONF_I2C_REG_KEY_TURNON = "i2c_registry_key_turnon"
+CONF_I2C_REG_KEY_TURNOFF = "i2c_registry_key_turnoff"
 
 i2c_client_ns = cg.esphome_ns.namespace("i2c_client")
 # I2CClientSwitch = i2c_client_ns.class_("I2CClientSwitch", switch.Switch, cg.Component, i2c.I2CDevice)
@@ -32,8 +33,9 @@ CONFIG_SCHEMA = (
     )
     .extend(
     {
-        cv.Required(CONF_I2C_REG_KEY_TOGGLE): cv.hex_uint8_t,
-        cv.Required(CONF_I2C_REG_KEY_STATE): cv.hex_uint8_t,
+        cv.Required(CONF_I2C_REG_KEY_READ): cv.hex_uint8_t,
+        cv.Required(CONF_I2C_REG_KEY_TURNON): cv.hex_uint8_t,
+        cv.Required(CONF_I2C_REG_KEY_TURNOFF): cv.hex_uint8_t,
     })
     # .extend(cv.COMPONENT_SCHEMA)
     .extend(cv.polling_component_schema("10s"))
@@ -45,6 +47,7 @@ async def to_code(config):
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
 
-    cg.add(var.set_registry_key_toggle(config[CONF_I2C_REG_KEY_TOGGLE]))
-    cg.add(var.set_registry_key_state(config[CONF_I2C_REG_KEY_STATE]))
+    cg.add(var.set_registry_key_read(config[CONF_I2C_REG_KEY_READ]))
+    cg.add(var.set_registry_key_turnon(config[CONF_I2C_REG_KEY_TURNON]))
+    cg.add(var.set_registry_key_turnoff(config[CONF_I2C_REG_KEY_TURNOFF]))
 

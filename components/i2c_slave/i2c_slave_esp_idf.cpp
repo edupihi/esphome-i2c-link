@@ -188,7 +188,7 @@ namespace i2c_slave
             i2c_slave_callback_t cb = (reg_it->second).cb;
             ESP_LOGVV(TAG, "Calling cb for (0x%02X): *f = %p", context->command_data, cb);
               // call the callback (static member) function, give the pointer to the component object as parameter
-            cb((void *)(reg_it->second).svc_handle);
+            cb(context->command_data, (void *)(reg_it->second).svc_handle);
           }
         }
       }

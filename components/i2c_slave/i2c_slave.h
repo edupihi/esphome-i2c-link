@@ -30,7 +30,8 @@ namespace i2c_slave
   } value_t;
 
   // signature for callback function
-  typedef void (*i2c_slave_callback_t)(void *arg);
+  // typedef void (*i2c_slave_callback_t)(void *arg);
+  typedef void (*i2c_slave_callback_t)(uint8_t reg_key, void *arg);
 
   typedef struct
   {

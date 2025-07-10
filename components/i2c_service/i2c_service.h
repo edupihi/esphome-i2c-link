@@ -55,8 +55,9 @@ namespace i2c_service
     void dump_config() override;
     float get_setup_priority() const override { return setup_priority::DATA; }
 
-    void set_registry_key_toggle(uint8_t key) { reg_key_toggle_ = key; }
-    void set_registry_key_state(uint8_t key) { reg_key_state_ = key; }
+    void set_registry_key_read(uint8_t key) { reg_key_read_ = key; };
+    void set_registry_key_turnon(uint8_t key) { reg_key_turnon_ = key; };
+    void set_registry_key_turnoff(uint8_t key) { reg_key_turnoff_ = key; };
 
     /// @brief we store the pointer to the Switch handle to use
     void set_switch(switch_::Switch *sw) { switch_ = sw; }
@@ -64,14 +65,15 @@ namespace i2c_service
     /// @brief get the pointer to the Switch object
     switch_::Switch  *get_switch() { return switch_; }
 
-    static void i2c_slave_cb(void *);
-    static void i2c_slave_cb2(void *);
+    static void i2c_slave_cb(uint8_t, void *);
 
   protected:
-    uint8_t reg_key_toggle_{0x0};
-    uint8_t reg_key_state_{0x0};
+    uint8_t reg_key_read_{0x0};
+    uint8_t reg_key_turnon_{0x0};
+    uint8_t reg_key_turnoff_{0x0};
     switch_::Switch *switch_{nullptr}; ///< pointer to I2CSlave instance
 
+    static void synchronize_registries(I2CServiceSwitchComponent *cmp);
   };
 
 } // namespace i2c_service

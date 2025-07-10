@@ -58,20 +58,18 @@ namespace i2c_client
     void update() override;
     float get_setup_priority() const override { return setup_priority::DATA; };
 
-    void set_registry_key_state(uint8_t key) { reg_key_state_ = key; };
-    void set_registry_key_toggle(uint8_t key) { reg_key_toggle_ = key; };
+    void set_registry_key_read(uint8_t key) { reg_key_read_ = key; };
+    void set_registry_key_turnon(uint8_t key) { reg_key_turnon_ = key; };
+    void set_registry_key_turnoff(uint8_t key) { reg_key_turnoff_ = key; };
 
     // void set_switch(switch_::Switch *sw) { switch_ = sw; };
 
   protected:
     void write_state(bool state) override; // this implements write_state(..) from switch_::Switch
     bool request_remote_state(uint8_t *reg_key_, bool *st);
-    // bool read_remote_state(bool *state);
-    // bool write_remote_state(bool state);
-    uint8_t reg_key_toggle_{0x0};
-    uint8_t reg_key_state_{0x0};
-
-    // switch_::Switch *switch_{nullptr};
+    uint8_t reg_key_read_{0x0};
+    uint8_t reg_key_turnon_{0x0};
+    uint8_t reg_key_turnoff_{0x0};
 
     /** last error code from i2c operation
      */

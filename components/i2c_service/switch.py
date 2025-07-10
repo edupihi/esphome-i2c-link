@@ -10,8 +10,9 @@ from esphome.const import (
 DEPENDENCIES = ["i2c_slave"] # switch service depends on i2c slave (extends I2CSlaveDevice) and links to a switch
 
 CONF_I2C_SLAVE_ID = "i2c_slave_id"
-CONF_I2C_REG_KEY_TOGGLE = "i2c_registry_key_toggle"
-CONF_I2C_REG_KEY_STATE = "i2c_registry_key_state"
+CONF_I2C_REG_KEY_READ = "i2c_registry_key_read"
+CONF_I2C_REG_KEY_TURNON = "i2c_registry_key_turnon"
+CONF_I2C_REG_KEY_TURNOFF = "i2c_registry_key_turnoff"
 CONF_I2C_SVC_SWITCH_ID = "i2c_svc_switch_id"
 CONF_SWITCH = "switch"
 ICON_TOGGLE = "mdi:toggle-switch"
@@ -42,8 +43,9 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(I2CServiceSwitchComponent),
-            cv.Required(CONF_I2C_REG_KEY_TOGGLE): cv.hex_uint8_t,
-            cv.Required(CONF_I2C_REG_KEY_STATE): cv.hex_uint8_t,
+            cv.Required(CONF_I2C_REG_KEY_READ): cv.hex_uint8_t,
+            cv.Required(CONF_I2C_REG_KEY_TURNON): cv.hex_uint8_t,
+            cv.Required(CONF_I2C_REG_KEY_TURNOFF): cv.hex_uint8_t,
         }
     )
     # .extend(cv.COMPONENT_SCHEMA)
@@ -59,6 +61,7 @@ async def to_code(config):
     await i2c_slave.register_i2c_slave_device(var, config)
     await register_i2c_service_switch(var, config)
 
-    cg.add(var.set_registry_key_toggle(config[CONF_I2C_REG_KEY_TOGGLE]))
-    cg.add(var.set_registry_key_state(config[CONF_I2C_REG_KEY_STATE]))
+    cg.add(var.set_registry_key_read(config[CONF_I2C_REG_KEY_READ]))
+    cg.add(var.set_registry_key_turnon(config[CONF_I2C_REG_KEY_TURNON]))
+    cg.add(var.set_registry_key_turnoff(config[CONF_I2C_REG_KEY_TURNOFF]))
 
